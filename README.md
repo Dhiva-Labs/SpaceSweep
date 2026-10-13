@@ -61,6 +61,11 @@ The biggest files over 10 / 50 / 100 / 500 MB, filterable by type.
 
 The same app runs on the Linux desktop, published as the `spacesweep` snap:
 
+<p>
+  <img src="docs/screenshots/linux-home.png" width="235" alt="Linux home">
+  <img src="docs/screenshots/linux-cache.png" width="235" alt="Linux cache and trash">
+</p>
+
 ```bash
 sudo snap install spacesweep
 ```
