@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A storage gauge three-quarters full with a sparkle: space being cleaned. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M54,32 A22,22 0 1,1 53.99,32"
+        android:strokeWidth="7"
+        android:strokeColor="#55FFFFFF" />
+    <path
+        android:pathData="M54,32 A22,22 0 1,1 32,54"
+        android:strokeLineCap="round"
+        android:strokeWidth="7"
+        android:strokeColor="#FFFFFFFF" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,43 Q55.6,52.4 65,54 Q55.6,55.6 54,65 Q52.4,55.6 43,54 Q52.4,52.4 54,43 Z" />
+</vector>
