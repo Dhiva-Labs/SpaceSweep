@@ -80,8 +80,38 @@ const _tempExtensions = {
 };
 const tempMinAge = Duration(days: 1);
 
-ScanTask<List<JunkItem>, int> junkScanTask(String root) =>
-    (emit) => scanJunk(root, onFolder: emit);
+ScanTask<List<JunkItem>, int> junkScanTask(List<String> roots) =>
+    (emit) => scanJunkIn(roots, onFolder: emit);
+
+/// [scanJunk] over each of [roots], merged in the same order.
+List<JunkItem> scanJunkIn(
+  List<String> roots, {
+  DateTime? now,
+  void Function(int folders)? onFolder,
+}) {
+  var offset = 0;
+  final items = <JunkItem>[];
+  for (final root in distinctRoots(roots)) {
+    var here = 0;
+    items.addAll(
+      scanJunk(
+        root,
+        now: now,
+        onFolder: (n) {
+          here = n;
+          onFolder?.call(offset + n);
+        },
+      ),
+    );
+    offset += here;
+  }
+  return items..sort(_byKindThenSize);
+}
+
+int _byKindThenSize(JunkItem a, JunkItem b) {
+  final kind = a.kind.index.compareTo(b.kind.index);
+  return kind != 0 ? kind : b.size.compareTo(a.size);
+}
 
 /// Walks [root] once and classifies junk.
 ///
@@ -101,11 +131,7 @@ List<JunkItem> scanJunk(
     onFolder,
   );
   scanner.visit(root, depth: 0);
-  scanner.items.sort((a, b) {
-    final kind = a.kind.index.compareTo(b.kind.index);
-    return kind != 0 ? kind : b.size.compareTo(a.size);
-  });
-  return scanner.items;
+  return scanner.items..sort(_byKindThenSize);
 }
 
 class _Summary {

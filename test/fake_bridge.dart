@@ -17,6 +17,9 @@ class FakeBridge implements StorageBridge {
   Future<String> storageRoot() async => root;
 
   @override
+  Future<List<String>> scanRoots() async => [root];
+
+  @override
   Future<int> sdkInt() async => 35;
 
   @override

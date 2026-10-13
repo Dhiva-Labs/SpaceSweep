@@ -17,6 +17,41 @@ bool isPrivatePath(String root, String path) {
   return false;
 }
 
+/// [walkFiles] over each of [roots] in turn; [onFile] counts across all of
+/// them. Roots nested inside another root are skipped so no file is listed
+/// twice.
+Iterable<FileEntry> walkRoots(
+  List<String> roots, {
+  bool includeHidden = false,
+  int minSize = 0,
+  void Function(int filesSeen)? onFile,
+}) sync* {
+  var offset = 0;
+  for (final root in distinctRoots(roots)) {
+    var seenHere = 0;
+    yield* walkFiles(
+      root,
+      includeHidden: includeHidden,
+      minSize: minSize,
+      onFile: (n) {
+        seenHere = n;
+        onFile?.call(offset + n);
+      },
+    );
+    offset += seenHere;
+  }
+}
+
+/// Normalised [roots] without duplicates or roots inside another root.
+List<String> distinctRoots(List<String> roots) {
+  final normal = {for (final r in roots) p.normalize(r)}.toList()..sort();
+  final out = <String>[];
+  for (final r in normal) {
+    if (!out.any((kept) => kept == r || p.isWithin(kept, r))) out.add(r);
+  }
+  return out;
+}
+
 /// Lists regular files below [root], depth first.
 ///
 /// Symlinks are never followed, so a file is reported at most once.

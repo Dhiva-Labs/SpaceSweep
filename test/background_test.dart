@@ -58,7 +58,9 @@ void main() {
     tree.file('b', bytesOf(3000, 1));
     final groups =
         await runInBackground<List<DuplicateGroup>, DuplicateProgress>(
-          duplicateScanTask(tree.root, const DuplicateScanOptions(minSize: 1)),
+          duplicateScanTask([
+            tree.root,
+          ], const DuplicateScanOptions(minSize: 1)),
         );
     expect(groups.single.files, hasLength(2));
   });

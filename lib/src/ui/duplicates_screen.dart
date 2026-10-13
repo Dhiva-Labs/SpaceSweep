@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../clean/cleaner.dart';
 import '../model/file_entry.dart';
+import '../model/scan_scope.dart';
 import '../platform/storage_bridge.dart';
 import '../scan/background.dart';
 import '../scan/duplicates.dart';
@@ -10,17 +11,21 @@ import '../util/format.dart';
 import 'widgets.dart';
 
 class DuplicatesScreen extends StatelessWidget {
-  const DuplicatesScreen({super.key, required this.bridge, required this.root});
+  const DuplicatesScreen({
+    super.key,
+    required this.bridge,
+    required this.scope,
+  });
 
   final StorageBridge bridge;
-  final String root;
+  final ScanScope scope;
 
   @override
   Widget build(BuildContext context) {
     return AllFilesAccessGate(
       bridge: bridge,
       title: 'Duplicate files',
-      child: _DuplicatesBody(bridge: bridge, root: root),
+      child: _DuplicatesBody(bridge: bridge, scope: scope),
     );
   }
 }
@@ -30,10 +35,10 @@ enum _Phase { intro, scanning, results }
 const _minSizes = [1000, 10 * 1000, 100 * 1000, 1000 * 1000];
 
 class _DuplicatesBody extends StatefulWidget {
-  const _DuplicatesBody({required this.bridge, required this.root});
+  const _DuplicatesBody({required this.bridge, required this.scope});
 
   final StorageBridge bridge;
-  final String root;
+  final ScanScope scope;
 
   @override
   State<_DuplicatesBody> createState() => _DuplicatesBodyState();
@@ -67,7 +72,7 @@ class _DuplicatesBodyState extends State<_DuplicatesBody> {
       final groups =
           await runInBackground<List<DuplicateGroup>, DuplicateProgress>(
             duplicateScanTask(
-              widget.root,
+              widget.scope.roots,
               DuplicateScanOptions(
                 minSize: _minSize,
                 includeHidden: _includeHidden,
@@ -146,7 +151,7 @@ class _DuplicatesBodyState extends State<_DuplicatesBody> {
     // let a delete reach files the user can't see.
     final visible = _visible;
     final report = await Cleaner(
-      widget.root,
+      widget.scope.base,
     ).deleteDuplicates(visible, {for (final f in _selectedVisible) f.path});
     if (!mounted) return;
     final gone = report.deleted.toSet();
@@ -227,7 +232,8 @@ class _DuplicatesBodyState extends State<_DuplicatesBody> {
       title: 'Find duplicate files',
       body:
           'Compares the actual content of your files, so copies are found '
-          'even when they have different names.',
+          'even when they have different names.'
+          '${widget.scope.coversBase ? '' : '\n\nLooks in ${widget.scope.rootNames}.'}',
       extra: Card(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -355,7 +361,7 @@ class _DuplicatesBodyState extends State<_DuplicatesBody> {
           padding: const EdgeInsets.only(bottom: 12),
           child: _GroupCard(
             group: group,
-            root: widget.root,
+            root: widget.scope.base,
             selected: _selected,
             onToggle: (f) => _toggle(group, f),
           ),

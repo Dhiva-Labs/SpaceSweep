@@ -13,7 +13,7 @@ void main() {
 
   List<DuplicateGroup> scan({int minSize = 1, bool hidden = false}) =>
       scanDuplicates(
-        tree.root,
+        [tree.root],
         DuplicateScanOptions(minSize: minSize, includeHidden: hidden),
         (_) {},
       );
@@ -99,6 +99,29 @@ void main() {
     tree.file('b2', bytesOf(9000, 2));
     final groups = scan();
     expect(groups.map((g) => g.size), [9000, 2000]);
+  });
+
+  test('finds duplicates across several roots and skips nested roots', () {
+    tree.file('Pictures/a.jpg', bytesOf(3000, 1));
+    tree.file('Downloads/a (1).jpg', bytesOf(3000, 1));
+    tree.file('Code/a.jpg', bytesOf(3000, 1)); // not a scan root
+    final groups = scanDuplicates(
+      [
+        tree.path('Pictures'),
+        tree.path('Downloads'),
+        tree.path('Pictures/sub/..'),
+      ],
+      const DuplicateScanOptions(minSize: 1),
+      (_) {},
+    );
+    expect(groups.single.files.map((f) => f.path).toSet(), {
+      tree.path('Pictures/a.jpg'),
+      tree.path('Downloads/a (1).jpg'),
+    });
+    expect(distinctRoots(['/h/Docs', '/h/Docs/Sub', '/h/Pics', '/h/Docs/']), [
+      '/h/Docs',
+      '/h/Pics',
+    ]);
   });
 
   group('autoSelect', () {

@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../model/scan_scope.dart';
+import '../platform/linux_bridge.dart';
 import '../platform/storage_bridge.dart';
 import '../theme.dart';
 import '../util/format.dart';
@@ -9,6 +11,7 @@ import 'cache_screen.dart';
 import 'duplicates_screen.dart';
 import 'junk_screen.dart';
 import 'large_files_screen.dart';
+import 'linux_cache_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.bridge});
@@ -20,7 +23,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
-  String? _root;
+  ScanScope? _scope;
   StorageInfo? _info;
   var _allFilesAccess = true;
   var _usageAccess = true;
@@ -45,25 +48,30 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _refresh() async {
     final bridge = widget.bridge;
-    final root = _root ?? await bridge.storageRoot();
+    final scope =
+        _scope ??
+        ScanScope(
+          base: await bridge.storageRoot(),
+          roots: await bridge.scanRoots(),
+        );
     final info = await bridge.storageInfo();
     final files = await bridge.hasAllFilesAccess();
     final usage = await bridge.hasUsageAccess();
     if (!mounted) return;
     setState(() {
-      _root = root;
+      _scope = scope;
       _info = info;
       _allFilesAccess = files;
       _usageAccess = usage;
     });
   }
 
-  Future<void> _open(Widget Function(String root) screen) async {
-    final root = _root;
-    if (root == null) return;
+  Future<void> _open(Widget Function(ScanScope scope) screen) async {
+    final scope = _scope;
+    if (scope == null) return;
     await Navigator.of(
       context,
-    ).push(MaterialPageRoute<void>(builder: (_) => screen(root)));
+    ).push(MaterialPageRoute<void>(builder: (_) => screen(scope)));
     await _refresh();
   }
 
@@ -83,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       IconData icon,
       String title,
       String subtitle,
-      Widget Function(String) screen,
+      Widget Function(ScanScope) screen,
     ) => _ToolTile(
       color: colors.accents[accent],
       icon: icon,
@@ -143,15 +151,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   Icons.file_copy_outlined,
                   'Duplicate files',
                   'Identical photos, videos & docs',
-                  (root) => DuplicatesScreen(bridge: bridge, root: root),
+                  (scope) => DuplicatesScreen(bridge: bridge, scope: scope),
                 ),
-                right: tile(
-                  1,
-                  Icons.cached,
-                  'App cache',
-                  'Clear cache-heavy apps',
-                  (_) => CacheScreen(bridge: bridge),
-                ),
+                right: bridge is LinuxStorageBridge
+                    ? tile(
+                        1,
+                        Icons.cached,
+                        'Cache & trash',
+                        'App caches, thumbnails, trash',
+                        (_) => LinuxCacheScreen(
+                          cacheDir: bridge.cacheDir,
+                          trashDir: bridge.trashDir,
+                        ),
+                      )
+                    : tile(
+                        1,
+                        Icons.cached,
+                        'App cache',
+                        'Clear cache-heavy apps',
+                        (_) => CacheScreen(bridge: bridge),
+                      ),
               ),
               const SizedBox(height: 12),
               _TileRow(
@@ -160,14 +179,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   Icons.cleaning_services_outlined,
                   'Junk files',
                   'Thumbnails, APKs, temp files',
-                  (root) => JunkScreen(bridge: bridge, root: root),
+                  (scope) => JunkScreen(bridge: bridge, scope: scope),
                 ),
                 right: tile(
                   3,
                   Icons.pie_chart_outline,
                   'Large files',
                   'What takes the most space',
-                  (root) => LargeFilesScreen(bridge: bridge, root: root),
+                  (scope) => LargeFilesScreen(bridge: bridge, scope: scope),
                 ),
               ),
               const SizedBox(height: 28),

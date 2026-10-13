@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=SpaceSweep
+Comment=Find duplicate files, clear caches and free up disk space
+Exec=spacesweep
+Icon=${SNAP}/usr/share/icons/hicolor/512x512/apps/spacesweep.png
+Terminal=false
+Categories=Utility;System;Filesystem;
+Keywords=duplicate;duplicates;cleaner;cache;storage;disk;space;junk;trash;
+StartupWMClass=com.dhivalabs.space_sweep

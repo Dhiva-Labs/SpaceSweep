@@ -80,19 +80,20 @@ const sampleBytes = 16 * 1024;
 const _wholeFileLimit = 3 * sampleBytes;
 
 ScanTask<List<DuplicateGroup>, DuplicateProgress> duplicateScanTask(
-  String root,
+  List<String> roots,
   DuplicateScanOptions options,
 ) =>
-    (emit) => scanDuplicates(root, options, emit);
+    (emit) => scanDuplicates(roots, options, emit);
 
-/// Scans [root] and returns duplicate groups, largest saving first.
+/// Scans [roots] and returns duplicate groups, largest saving first.
+/// Duplicates are found across roots, not just within each.
 List<DuplicateGroup> scanDuplicates(
-  String root,
+  List<String> roots,
   DuplicateScanOptions options,
   void Function(DuplicateProgress) emit,
 ) {
-  final files = walkFiles(
-    root,
+  final files = walkRoots(
+    roots,
     includeHidden: options.includeHidden,
     minSize: options.minSize < 1 ? 1 : options.minSize,
     onFile: (n) => emit(DuplicateProgress(DuplicateStage.listing, files: n)),

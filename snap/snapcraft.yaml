@@ -1,0 +1,113 @@
+# Snap Store packaging for SpaceSweep (Linux desktop edition).
+#
+# Same pattern as DoseDrop: `plugin: flutter` + the `gnome` extension under
+# strict confinement, built from source in a core22 container so the binary
+# matches the snap's runtime libraries.
+#
+#   snapcraft pack --use-lxd        # from a `git archive` export, see SNAP.md
+#   snapcraft upload --release=stable spacesweep_<version>_amd64.snap
+#
+# packaging/SNAP.md covers the build, the store review the personal-files
+# plugs need, and how confinement maps onto each feature.
+name: spacesweep
+title: SpaceSweep
+base: core22
+version: '1.1.0'
+summary: Find duplicate files, clear app caches and empty the trash
+description: |
+  SpaceSweep frees up disk space without guesswork. Everything runs on your
+  computer: no ads, no tracking, no network access.
+
+  - Duplicate files: compares file contents (size, then sampled and full
+    SHA-256), so renamed copies are found too. One copy of every file is
+    always kept: the oldest, the newest or the one with the shortest path.
+  - Cache & trash: per-app cache folders in ~/.cache sorted by size, with
+    one-click clearing (apps rebuild what they need), plus emptying the trash.
+  - Junk files: leftover installers, stale temp and partial downloads, and
+    empty folders.
+  - Large files: the biggest files over 10, 50, 100 or 500 MB.
+
+  Every delete is re-checked first: a file that changed since the scan is
+  skipped, and links are never followed. File scans cover your Desktop,
+  Documents, Downloads, Music, Pictures and Videos folders, so source trees,
+  SDKs and application data are never touched.
+
+  Also available for Android. A Dhiva Labs project.
+
+grade: stable
+confinement: strict
+icon: snap/gui/spacesweep.png
+license: Proprietary
+website: https://github.com/Dhiva-Labs/SpaceSweep
+source-code: https://github.com/Dhiva-Labs/SpaceSweep
+issues: https://github.com/Dhiva-Labs/SpaceSweep/issues
+contact: dhivakar1010@gmail.com
+
+architectures:
+  - build-on: amd64
+
+plugs:
+  # ~/.cache: measured per app and cleared on request (Cache & trash screen).
+  dot-cache:
+    interface: personal-files
+    write:
+      - $HOME/.cache
+  # The freedesktop.org trash, emptied on request.
+  trash:
+    interface: personal-files
+    write:
+      - $HOME/.local/share/Trash
+  # Localised names of Documents, Downloads, Pictures... (read only).
+  user-dirs:
+    interface: personal-files
+    read:
+      - $HOME/.config/user-dirs.dirs
+
+apps:
+  spacesweep:
+    command: space_sweep
+    # Supplies GTK/GLib/Mesa via the gnome-42-2204 content snap and adds the
+    # desktop, desktop-legacy, gsettings, opengl, wayland and x11 plugs.
+    extensions:
+      - gnome
+    desktop: usr/share/applications/spacesweep.desktop
+    plugs:
+      # Scans and deletes in the non-hidden folders of $HOME. The app reads
+      # SNAP_REAL_HOME for the real home folder; HOME stays the snap's own.
+      - home
+      - dot-cache
+      - trash
+      - user-dirs
+
+parts:
+  spacesweep:
+    plugin: flutter
+    source: .
+    flutter-target: lib/main.dart
+    # Host build output (Android and Linux) must not reach the container:
+    # CMake refuses a cache generated elsewhere, and the rest is just bulk.
+    override-pull: |
+      craftctl default
+      rm -rf build .dart_tool .flutter .pub-cache dist docs android \
+        parts prime stage linux/flutter/ephemeral
+    build-packages:
+      - clang
+      - cmake
+      - ninja-build
+      - pkg-config
+      - libgtk-3-dev
+      - liblzma-dev
+      - curl
+      - unzip
+      - xz-utils
+      - git
+
+  desktop-assets:
+    plugin: dump
+    source: snap/gui
+    organize:
+      spacesweep.desktop: usr/share/applications/spacesweep.desktop
+      spacesweep.png: usr/share/icons/hicolor/512x512/apps/spacesweep.png
+    stage:
+      - usr/share/applications/spacesweep.desktop
+      - usr/share/icons/hicolor/512x512/apps/spacesweep.png

@@ -75,6 +75,10 @@ class ApkInfo {
 /// Android storage services the Dart side can't reach on its own.
 abstract class StorageBridge {
   Future<String> storageRoot();
+
+  /// Folders the file scans walk, all inside [storageRoot].
+  Future<List<String>> scanRoots();
+
   Future<int> sdkInt();
   Future<StorageInfo> storageInfo();
 
@@ -123,6 +127,10 @@ class MethodChannelStorageBridge implements StorageBridge {
 
   @override
   Future<String> storageRoot() => _call('storageRoot');
+
+  /// All of shared storage.
+  @override
+  Future<List<String>> scanRoots() async => [await storageRoot()];
 
   @override
   Future<int> sdkInt() => _call('sdkInt');

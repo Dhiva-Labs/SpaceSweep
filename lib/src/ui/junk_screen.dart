@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 import '../clean/cleaner.dart';
+import '../model/scan_scope.dart';
 import '../platform/storage_bridge.dart';
 import '../scan/background.dart';
 import '../scan/junk.dart';
@@ -9,17 +10,17 @@ import '../util/format.dart';
 import 'widgets.dart';
 
 class JunkScreen extends StatelessWidget {
-  const JunkScreen({super.key, required this.bridge, required this.root});
+  const JunkScreen({super.key, required this.bridge, required this.scope});
 
   final StorageBridge bridge;
-  final String root;
+  final ScanScope scope;
 
   @override
   Widget build(BuildContext context) {
     return AllFilesAccessGate(
       bridge: bridge,
       title: 'Junk files',
-      child: _JunkBody(bridge: bridge, root: root),
+      child: _JunkBody(bridge: bridge, scope: scope),
     );
   }
 }
@@ -33,10 +34,10 @@ IconData _junkIcon(JunkKind kind) => switch (kind) {
 };
 
 class _JunkBody extends StatefulWidget {
-  const _JunkBody({required this.bridge, required this.root});
+  const _JunkBody({required this.bridge, required this.scope});
 
   final StorageBridge bridge;
-  final String root;
+  final ScanScope scope;
 
   @override
   State<_JunkBody> createState() => _JunkBodyState();
@@ -70,7 +71,7 @@ class _JunkBodyState extends State<_JunkBody> {
     final List<JunkItem> items;
     try {
       items = await runInBackground<List<JunkItem>, int>(
-        junkScanTask(widget.root),
+        junkScanTask(widget.scope.roots),
         onProgress: (n) {
           if (mounted) setState(() => _foldersScanned = n);
         },
@@ -116,7 +117,7 @@ class _JunkBodyState extends State<_JunkBody> {
     final ok = await confirmDelete(context, count: items.length, bytes: bytes);
     if (!ok || !mounted) return;
     setState(() => _deleting = true);
-    final report = await Cleaner(widget.root).deleteJunk(items);
+    final report = await Cleaner(widget.scope.base).deleteJunk(items);
     if (!mounted) return;
     final gone = report.deleted.toSet();
     setState(() {
@@ -242,7 +243,7 @@ class _JunkBodyState extends State<_JunkBody> {
         : item.name;
     final where = displayPath(
       item.isDirectory ? item.path : p.dirname(item.path),
-      widget.root,
+      widget.scope.base,
     );
     return InkWell(
       onTap: () => setState(() {

@@ -46,3 +46,9 @@ app.*.map.json
 
 # Release artefacts
 dist/
+
+# Snap build output
+*.snap
+/parts/
+/prime/
+/stage/

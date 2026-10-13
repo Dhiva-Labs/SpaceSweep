@@ -13,8 +13,11 @@ void main() {
   setUp(() => tree = TempTree());
   tearDown(() => tree.dispose());
 
-  List<DuplicateGroup> scan() =>
-      scanDuplicates(tree.root, const DuplicateScanOptions(minSize: 1), (_) {});
+  List<DuplicateGroup> scan() => scanDuplicates(
+    [tree.root],
+    const DuplicateScanOptions(minSize: 1),
+    (_) {},
+  );
 
   test('deletes the selected copies and keeps the rest', () async {
     tree.file('a/x.jpg', bytesOf(4000, 1));

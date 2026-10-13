@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../clean/cleaner.dart';
 import '../model/file_entry.dart';
+import '../model/scan_scope.dart';
 import '../platform/storage_bridge.dart';
 import '../scan/background.dart';
 import '../scan/large_files.dart';
@@ -10,17 +11,21 @@ import '../util/format.dart';
 import 'widgets.dart';
 
 class LargeFilesScreen extends StatelessWidget {
-  const LargeFilesScreen({super.key, required this.bridge, required this.root});
+  const LargeFilesScreen({
+    super.key,
+    required this.bridge,
+    required this.scope,
+  });
 
   final StorageBridge bridge;
-  final String root;
+  final ScanScope scope;
 
   @override
   Widget build(BuildContext context) {
     return AllFilesAccessGate(
       bridge: bridge,
       title: 'Large files',
-      child: _LargeFilesBody(bridge: bridge, root: root),
+      child: _LargeFilesBody(bridge: bridge, scope: scope),
     );
   }
 }
@@ -33,10 +38,10 @@ const _thresholds = [
 ];
 
 class _LargeFilesBody extends StatefulWidget {
-  const _LargeFilesBody({required this.bridge, required this.root});
+  const _LargeFilesBody({required this.bridge, required this.scope});
 
   final StorageBridge bridge;
-  final String root;
+  final ScanScope scope;
 
   @override
   State<_LargeFilesBody> createState() => _LargeFilesBodyState();
@@ -72,7 +77,7 @@ class _LargeFilesBodyState extends State<_LargeFilesBody> {
     });
     try {
       final files = await runInBackground<List<FileEntry>, int>(
-        largeFileScanTask(widget.root, _thresholds.first),
+        largeFileScanTask(widget.scope.roots, _thresholds.first),
         onProgress: (n) {
           if (mounted) setState(() => _filesSeen = n);
         },
@@ -107,7 +112,7 @@ class _LargeFilesBodyState extends State<_LargeFilesBody> {
     );
     if (!ok || !mounted) return;
     setState(() => _deleting = true);
-    final report = await Cleaner(widget.root).deleteFiles(files);
+    final report = await Cleaner(widget.scope.base).deleteFiles(files);
     if (!mounted) return;
     final gone = report.deleted.toSet();
     setState(() {
@@ -235,7 +240,7 @@ class _LargeFilesBodyState extends State<_LargeFilesBody> {
               overflow: TextOverflow.ellipsis,
             ),
             subtitle: Text(
-              '${formatBytes(file.size)} · ${displayPath(file.parent, widget.root)}',
+              '${formatBytes(file.size)} · ${displayPath(file.parent, widget.scope.base)}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
