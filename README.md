@@ -1,6 +1,6 @@
 # SpaceSweep
 
-**Free up space on your Android phone.** Find duplicate files, clear app caches,
+**Free up space on your Android phone or Linux desktop.** Find duplicate files, clear app caches,
 sweep away junk and spot the files eating your storage — all on-device, no ads,
 no tracking, no network access.
 
@@ -57,6 +57,34 @@ bundled in `assets/fonts`, so the app still needs no internet access).
 ### Large files
 The biggest files over 10 / 50 / 100 / 500 MB, filterable by type.
 
+## Linux edition
+
+The same app runs on the Linux desktop, published as the `spacesweep` snap:
+
+```bash
+sudo snap install spacesweep
+```
+
+- Duplicate, junk and large-file scans cover your Desktop, Documents,
+  Downloads, Music, Pictures and Videos folders (localised names come from
+  `~/.config/user-dirs.dirs`). The rest of your home folder, including
+  source trees, SDKs and app data, is never scanned.
+- **Cache & trash** replaces the Android cache screen: every folder in
+  `~/.cache` by size, cleared one at a time or all at once (contents only),
+  plus emptying the desktop trash.
+
+If the snap's file plugs aren't connected yet (they need a store grant to
+connect automatically), connect them once:
+
+```bash
+sudo snap connect spacesweep:dot-cache
+sudo snap connect spacesweep:trash
+sudo snap connect spacesweep:user-dirs
+```
+
+See [packaging/SNAP.md](packaging/SNAP.md) for how the snap is built and
+confined.
+
 ## About clearing other apps' caches
 
 Since Android 6, only system apps may wipe another app's internal cache
@@ -96,11 +124,12 @@ permissions declaration.
 
 ## Building
 
-Requires Flutter 3.44+ and the Android SDK. Runs on Android 8.0 (API 26) or newer.
+Requires Flutter 3.44+, plus the Android SDK for Android builds. Runs on Android 8.0 (API 26) or newer, and on Linux (x86-64).
 
 ```bash
 flutter test                 # unit + widget tests
 flutter build apk --release
+flutter build linux --release
 ```
 
 Release builds are signed with the key referenced by `android/key.properties`

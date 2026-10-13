@@ -69,6 +69,16 @@ const standardFolders = {
   'Ringtones',
 };
 
+bool _keptFolder(String name) =>
+    name.startsWith('.') || keepWhenEmpty.contains(name.toLowerCase());
+
+/// Folders that system tools create and fill on their own (GNOME's
+/// screenshot folder, camera apps...), never offered as empty junk.
+const keepWhenEmpty = {
+  'screenshots', 'screencasts', 'screen recordings', 'recordings', //
+  'camera', 'webcam', 'wallpapers',
+};
+
 const _apkExtensions = {'.apk', '.apks', '.xapk', '.apkm'};
 const _tempExtensions = {
   '.tmp',
@@ -195,7 +205,9 @@ class _JunkScanner {
         }
         final child = visit(entity.path, depth: depth + 1);
         bytes += child.bytes;
-        if (child.hasContent) {
+        // A folder we would never delete (hidden, or one the system fills
+        // itself) counts as content, so its parent is never "empty" either.
+        if (child.hasContent || _keptFolder(name)) {
           hasContent = true;
         } else {
           emptyChildren.add(entity.path);
@@ -238,7 +250,7 @@ class _JunkScanner {
   /// empty subfolders are reported instead.
   void _reportEmpty(String folder, String parent) {
     final name = p.basename(folder);
-    if (name.startsWith('.')) return;
+    if (_keptFolder(name)) return;
     final inAndroid =
         p.isWithin(p.join(root, 'Android'), folder) ||
         folder == p.join(root, 'Android');

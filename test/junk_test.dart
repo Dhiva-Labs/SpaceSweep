@@ -68,6 +68,16 @@ void main() {
     expect(empties, {'Music/Old album'});
   });
 
+  test('folders that system tools fill on their own are never junk', () {
+    tree.dir('Pictures/Screenshots');
+    tree.dir('Videos/Screencasts');
+    tree.dir('DCIM/Camera');
+    tree.dir('Pictures/Old trip');
+    // Videos holds nothing but a kept folder, so it is not empty either.
+    tree.dir('Stuff/.config');
+    expect(scan()[JunkKind.emptyFolder], {'Pictures/Old trip'});
+  });
+
   test('folders holding only a .nomedia file are not empty', () {
     tree.file('Pictures/Private/.nomedia', []);
     expect(scan()[JunkKind.emptyFolder], isNull);

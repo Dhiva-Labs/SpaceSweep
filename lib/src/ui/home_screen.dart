@@ -115,7 +115,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
               ),
               const SizedBox(height: 20),
-              _HeroCard(info: info, segments: segments),
+              _HeroCard(
+                info: info,
+                segments: segments,
+                label: bridge is LinuxStorageBridge
+                    ? 'Home disk'
+                    : 'Internal storage',
+              ),
               const SizedBox(height: 12),
               if (segments.length > 1)
                 _Legend(segments: segments)
@@ -249,10 +255,17 @@ List<_Segment> _breakdown(StorageInfo info, SweepColors colors) {
 }
 
 class _HeroCard extends StatelessWidget {
-  const _HeroCard({required this.info, required this.segments});
+  const _HeroCard({
+    required this.info,
+    required this.segments,
+    required this.label,
+  });
 
   final StorageInfo? info;
   final List<_Segment> segments;
+
+  /// "Internal storage" on a phone, "Home disk" on the desktop.
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -299,7 +312,7 @@ class _HeroCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Internal storage',
+                        label,
                         style: TextStyle(
                           color: colors.onHeroMuted,
                           fontSize: 13,
