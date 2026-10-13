@@ -100,8 +100,20 @@ Requires Flutter 3.44+ and the Android SDK. Runs on Android 8.0 (API 26) or newe
 
 ```bash
 flutter test                 # unit + widget tests
-flutter build apk --release  # signed with debug keys until a keystore is set up
+flutter build apk --release
 ```
+
+Release builds are signed with the key referenced by `android/key.properties`
+(gitignored, like the keystore it points at). Without that file they fall back
+to the debug key and Gradle prints a warning.
+
+Official APKs are signed with this certificate:
+
+```
+SHA-256: fa:00:f4:e9:2f:1a:07:74:42:a6:67:5a:b8:26:ad:0c:48:c9:ac:72:8c:ec:7c:c2:5b:8f:05:87:3e:11:ce:cd
+```
+
+Check a download with `apksigner verify --print-certs SpaceSweep-*.apk`.
 
 Code layout:
 
