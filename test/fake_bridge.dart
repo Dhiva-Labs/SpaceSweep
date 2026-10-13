@@ -20,11 +20,17 @@ class FakeBridge implements StorageBridge {
   Future<int> sdkInt() async => 35;
 
   @override
-  Future<StorageInfo> storageInfo() async => const StorageInfo(
-    totalBytes: 128 * 1000 * 1000 * 1000,
-    freeBytes: 32 * 1000 * 1000 * 1000,
-    imageBytes: 12 * 1000 * 1000 * 1000,
+  // Like the real bridge, the breakdown needs usage access.
+  Future<StorageInfo> storageInfo() async => StorageInfo(
+    totalBytes: 128 * _gb,
+    freeBytes: 32 * _gb,
+    imageBytes: usage ? 12 * _gb : null,
+    videoBytes: usage ? 20 * _gb : null,
+    audioBytes: usage ? 2 * _gb : null,
+    appBytes: usage ? 30 * _gb : null,
   );
+
+  static const _gb = 1000 * 1000 * 1000;
 
   @override
   Future<bool> hasAllFilesAccess() async => allFiles;

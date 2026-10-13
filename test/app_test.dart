@@ -39,11 +39,19 @@ void main() {
     usePhone(tester);
     await tester.pumpWidget(SpaceSweepApp(bridge: bridge));
     await tester.pumpAndSettle();
-    expect(
-      find.text('96 GB  used of 128 GB', findRichText: true),
-      findsOneWidget,
-    );
-    expect(find.text('Images 12 GB'), findsOneWidget);
+    expect(find.text('96 GB'), findsOneWidget);
+    expect(find.text('of 128 GB used'), findsOneWidget);
+    expect(find.text('32 GB free'), findsOneWidget);
+    expect(find.text('75%'), findsOneWidget);
+    // Used space split into apps, media and the rest (96 - 12 - 20 - 30).
+    for (final part in [
+      'Photos 12 GB',
+      'Videos 20 GB',
+      'Apps 30 GB',
+      'Other 34 GB',
+    ]) {
+      expect(find.text(part), findsOneWidget);
+    }
     for (final tool in [
       'Duplicate files',
       'App cache',
@@ -53,6 +61,30 @@ void main() {
       expect(find.text(tool), findsOneWidget);
     }
     expect(find.text('Allow file access'), findsNothing);
+  });
+
+  testWidgets('without usage access the ring is one segment with a prompt', (
+    tester,
+  ) async {
+    bridge.usage = false;
+    usePhone(tester);
+    await tester.pumpWidget(SpaceSweepApp(bridge: bridge));
+    await tester.pumpAndSettle();
+    expect(find.text('Photos 12 GB'), findsNothing);
+    await tester.tap(find.text('See what\'s using space'));
+    await tester.pumpAndSettle();
+    expect(bridge.usage, isTrue);
+  });
+
+  testWidgets('dark theme renders the home screen', (tester) async {
+    usePhone(tester);
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await tester.pumpWidget(SpaceSweepApp(bridge: bridge));
+    await tester.pumpAndSettle();
+    final context = tester.element(find.text('SpaceSweep'));
+    expect(Theme.of(context).brightness, Brightness.dark);
+    expect(Theme.of(context).colorScheme.surface, const Color(0xFF0E0D13));
   });
 
   testWidgets('asks for file access when it is missing', (tester) async {

@@ -5,11 +5,21 @@ sweep away junk and spot the files eating your storage — all on-device, no ads
 no tracking, no network access.
 
 <p>
-  <img src="docs/screenshots/home.png" width="180" alt="Home">
+  <img src="docs/screenshots/home.png" width="180" alt="Home, dark">
+  <img src="docs/screenshots/home-light.png" width="180" alt="Home, light">
   <img src="docs/screenshots/duplicates.png" width="180" alt="Duplicate files">
+</p>
+<p>
   <img src="docs/screenshots/app-cache.png" width="180" alt="App cache">
   <img src="docs/screenshots/junk.png" width="180" alt="Junk files">
+  <img src="docs/screenshots/large-files.png" width="180" alt="Large files">
 </p>
+
+The home screen's storage ring splits used space into photos, videos, apps
+and everything else (with usage access). The look is "Lilac night": ink-black
+and lavender surfaces with lilac, pink, lime and peach accents, set in
+[Space Grotesk](https://github.com/floriankarsten/space-grotesk) (SIL OFL 1.1,
+bundled in `assets/fonts`, so the app still needs no internet access).
 
 ## Features
 

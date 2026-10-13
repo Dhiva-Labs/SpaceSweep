@@ -3,6 +3,7 @@ package com.dhivalabs.space_sweep
 import android.Manifest
 import android.app.Activity
 import android.app.AppOpsManager
+import android.app.usage.StorageStats
 import android.app.usage.StorageStatsManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -155,6 +156,7 @@ class StorageChannel(private val activity: Activity, messenger: BinaryMessenger)
             } catch (_: Exception) {
                 // Media totals are a nice-to-have.
             }
+            info["apps"] = appStats().sumOf { (_, s) -> s.appBytes + s.dataBytes }
         }
         return info
     }
@@ -220,23 +222,27 @@ class StorageChannel(private val activity: Activity, messenger: BinaryMessenger)
             pm.getInstalledApplications(0)
         }
 
-    private fun appCaches(): List<Map<String, Any>> {
+    /** Storage stats for every installed app; apps that can't be measured are skipped. */
+    private fun appStats(): List<Pair<ApplicationInfo, StorageStats>> {
         val user = Process.myUserHandle()
         return installedApps().mapNotNull { app ->
             try {
-                val s = stats.queryStatsForPackage(app.storageUuid, app.packageName, user)
-                mapOf(
-                    "package" to app.packageName,
-                    "label" to app.loadLabel(pm).toString(),
-                    "cache" to s.cacheBytes,
-                    "data" to s.dataBytes,
-                    "app" to s.appBytes,
-                    "system" to ((app.flags and ApplicationInfo.FLAG_SYSTEM) != 0),
-                )
+                app to stats.queryStatsForPackage(app.storageUuid, app.packageName, user)
             } catch (_: Exception) {
                 null
             }
         }
+    }
+
+    private fun appCaches(): List<Map<String, Any>> = appStats().map { (app, s) ->
+        mapOf(
+            "package" to app.packageName,
+            "label" to app.loadLabel(pm).toString(),
+            "cache" to s.cacheBytes,
+            "data" to s.dataBytes,
+            "app" to s.appBytes,
+            "system" to ((app.flags and ApplicationInfo.FLAG_SYSTEM) != 0),
+        )
     }
 
     private fun appIcon(pkg: String): ByteArray? = try {

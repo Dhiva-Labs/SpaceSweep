@@ -7,15 +7,19 @@ class StorageInfo {
     this.imageBytes,
     this.videoBytes,
     this.audioBytes,
+    this.appBytes,
   });
 
   final int totalBytes;
   final int freeBytes;
 
-  /// Media totals; only known with usage access.
+  /// Breakdown totals; only known with usage access.
   final int? imageBytes;
   final int? videoBytes;
   final int? audioBytes;
+
+  /// Installed apps: code plus data, caches included.
+  final int? appBytes;
 
   int get usedBytes => totalBytes - freeBytes;
   double get usedFraction => totalBytes == 0 ? 0 : usedBytes / totalBytes;
@@ -132,6 +136,7 @@ class MethodChannelStorageBridge implements StorageBridge {
       imageBytes: m['images'] as int?,
       videoBytes: m['video'] as int?,
       audioBytes: m['audio'] as int?,
+      appBytes: m['apps'] as int?,
     );
   }
 

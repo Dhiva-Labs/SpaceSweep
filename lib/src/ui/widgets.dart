@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../clean/cleaner.dart';
 import '../platform/storage_bridge.dart';
+import '../theme.dart';
 import '../util/file_kind.dart';
 import '../util/format.dart';
 
@@ -16,6 +17,19 @@ IconData kindIcon(FileKind kind) => switch (kind) {
   FileKind.other => Icons.insert_drive_file_outlined,
 };
 
+/// Accent per file kind, matching the storage legend on the home screen.
+Color kindColor(BuildContext context, FileKind kind) {
+  final colors = SweepColors.of(context);
+  return switch (kind) {
+    FileKind.image => colors.lilac,
+    FileKind.video => colors.pink,
+    FileKind.audio => colors.lime,
+    FileKind.document => colors.peach,
+    FileKind.archive ||
+    FileKind.other => Theme.of(context).colorScheme.onSurfaceVariant,
+  };
+}
+
 /// A square preview: the image itself for pictures, an icon otherwise.
 class FileThumb extends StatelessWidget {
   const FileThumb(this.path, {super.key, this.size = 44});
@@ -25,20 +39,16 @@ class FileThumb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final kind = kindOf(path);
+    final tint = kindColor(context, kind);
     final icon = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: scheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(10),
+        color: tint.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Icon(
-        kindIcon(kind),
-        color: scheme.onSecondaryContainer,
-        size: size * 0.5,
-      ),
+      child: Icon(kindIcon(kind), color: tint, size: size * 0.5),
     );
     if (kind != FileKind.image) return icon;
     final dpr = MediaQuery.devicePixelRatioOf(context);
@@ -423,6 +433,8 @@ class Tag extends StatelessWidget {
 }
 
 /// Big headline card at the top of a results list.
+/// Headline card at the top of a results list, in the dark hero style
+/// shared with the home screen.
 class SummaryCard extends StatelessWidget {
   const SummaryCard({
     super.key,
@@ -437,39 +449,47 @@ class SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    return Card(
-      color: scheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    headline,
-                    style: text.headlineSmall?.copyWith(
-                      color: scheme.onPrimaryContainer,
-                      fontWeight: FontWeight.w600,
-                    ),
+    final colors = SweepColors.of(context);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colors.hero,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  headline,
+                  style: TextStyle(
+                    color: colors.onHero,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    detail,
-                    style: text.bodyMedium?.copyWith(
-                      color: scheme.onPrimaryContainer,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  detail,
+                  style: TextStyle(color: colors.onHeroMuted, fontSize: 14),
+                ),
+              ],
             ),
-            if (icon != null)
-              Icon(icon, size: 40, color: scheme.onPrimaryContainer),
-          ],
-        ),
+          ),
+          if (icon != null)
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: SweepColors.dark.lilac.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, size: 28, color: SweepColors.dark.lilac),
+            ),
+        ],
       ),
     );
   }
