@@ -13,8 +13,16 @@ whole directory into the container first, including the host's `build/`
 ```sh
 rm -rf ~/snapbuild/spacesweep && mkdir -p ~/snapbuild/spacesweep
 git archive HEAD | tar -x -C ~/snapbuild/spacesweep
-cd ~/snapbuild/spacesweep && snapcraft pack --use-lxd   # -> spacesweep_<version>_amd64.snap
+cd ~/snapbuild/spacesweep && snapcraft pack --use-lxd   # -> spacesweep_<version>_<arch>.snap
 ```
+
+The snap builds for `amd64` and `arm64` (`architectures:` in `snapcraft.yaml`).
+Build on a machine of the architecture you want: snapcraft builds for the
+host's architecture, and the Flutter engine is not cross-compiled. The CI
+workflow does exactly that on a native runner for each architecture, installs
+each snap on its runner, starts it under Xvfb, and keeps both snaps as
+workflow artifacts (`snap-amd64`, `snap-arm64`); it never uploads to the
+store.
 
 The export must live under `$HOME`; the LXD snap cannot see the host's
 `/tmp`. `version` in `snapcraft.yaml` is set by hand and must match
@@ -27,7 +35,7 @@ connect the personal-files plugs by hand (they only auto-connect once the
 store grants it) and run it under `xvfb-run`:
 
 ```sh
-sudo snap install --dangerous spacesweep_<version>_amd64.snap
+sudo snap install --dangerous spacesweep_<version>_<arch>.snap
 sudo snap connect spacesweep:dot-cache
 sudo snap connect spacesweep:trash
 sudo snap connect spacesweep:user-dirs
@@ -38,6 +46,7 @@ sudo snap connect spacesweep:user-dirs
 ```sh
 snapcraft register spacesweep          # once
 snapcraft upload --release=stable spacesweep_<version>_amd64.snap
+snapcraft upload --release=stable spacesweep_<version>_arm64.snap
 ```
 
 The `personal-files` plugs send every upload to manual review, and a
