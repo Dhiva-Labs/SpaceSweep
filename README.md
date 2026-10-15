@@ -1,5 +1,9 @@
 # SpaceSweep
 
+[![ARM64 builds](https://github.com/Dhiva-Labs/SpaceSweep/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Dhiva-Labs/SpaceSweep/actions/workflows/ci.yml)
+![Linux x64 | arm64](https://img.shields.io/badge/Linux-x64%20%7C%20arm64-informational?logo=linux&logoColor=white)
+![Android](https://img.shields.io/badge/Android-8.0%2B-informational?logo=android&logoColor=white)
+
 **Free up space on your Android phone or Linux desktop.** Find duplicate files, clear app caches,
 sweep away junk and spot the files eating your storage — all on-device, no ads,
 no tracking, no network access.
@@ -59,7 +63,8 @@ The biggest files over 10 / 50 / 100 / 500 MB, filterable by type.
 
 ## Linux edition
 
-The same app runs on the Linux desktop, published as the `spacesweep` snap:
+The same app runs on the Linux desktop (x86-64 and ARM64), published as the
+`spacesweep` snap:
 
 <p>
   <img src="docs/screenshots/linux-home.png" width="235" alt="Linux home">
@@ -77,6 +82,13 @@ sudo snap install spacesweep
 - **Cache & trash** replaces the Android cache screen: every folder in
   `~/.cache` by size, cleared one at a time or all at once (contents only),
   plus emptying the desktop trash.
+
+Or download the tarball for your machine from the
+[Releases](https://github.com/Dhiva-Labs/SpaceSweep/releases) page,
+`SpaceSweep-<version>-linux-x64.tar.gz` (x86-64) or
+`SpaceSweep-<version>-linux-arm64.tar.gz` (ARM64 / aarch64), extract it and run
+`./space_sweep`. It needs the GTK 3 runtime (`libgtk-3-0`). Outside the snap
+the app works on your real home folder directly.
 
 If the snap's file plugs aren't connected yet (they need a store grant to
 connect automatically), connect them once:
@@ -129,13 +141,19 @@ permissions declaration.
 
 ## Building
 
-Requires Flutter 3.44+, plus the Android SDK for Android builds. Runs on Android 8.0 (API 26) or newer, and on Linux (x86-64).
+Requires Flutter 3.44+, plus the Android SDK for Android builds. Runs on Android 8.0 (API 26) or newer, and on Linux (x86-64 and ARM64).
 
 ```bash
 flutter test                 # unit + widget tests
 flutter build apk --release
 flutter build linux --release
+packaging/build_tarball.sh   # -> dist/SpaceSweep-<version>-linux-<x64|arm64>.tar.gz
 ```
+
+Flutter cannot cross-compile the Linux desktop target: the bundle lands in
+`build/linux/x64/release/bundle` on an x86-64 machine and in
+`build/linux/arm64/release/bundle` on an ARM64 one, and `build_tarball.sh`
+packs the one for the machine it runs on.
 
 Release builds are signed with the key referenced by `android/key.properties`
 (gitignored, like the keystore it points at). Without that file they fall back
