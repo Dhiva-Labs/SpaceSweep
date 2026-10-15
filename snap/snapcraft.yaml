@@ -5,7 +5,7 @@
 # matches the snap's runtime libraries.
 #
 #   snapcraft pack --use-lxd        # from a `git archive` export, see SNAP.md
-#   snapcraft upload --release=stable spacesweep_<version>_amd64.snap
+#   snapcraft upload --release=stable spacesweep_<version>_<arch>.snap
 #
 # packaging/SNAP.md covers the build, the store review the personal-files
 # plugs need, and how confinement maps onto each feature.
@@ -45,6 +45,7 @@ contact: dhivakar1010@gmail.com
 
 architectures:
   - build-on: amd64
+  - build-on: arm64
 
 plugs:
   # ~/.cache: measured per app and cleared on request (Cache & trash screen).
