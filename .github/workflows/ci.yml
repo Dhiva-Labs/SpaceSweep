@@ -6,11 +6,17 @@ name: CI
 # the amd64 and arm64 snaps the same way. The Android app is built by hand and
 # is not part of this workflow.
 #
+# The distros, aur and flatpak jobs turn the same tarball into an installed
+# tree (packaging/linux-distros/make-tree.sh) and package it for Fedora/RHEL/
+# openSUSE (.rpm), Arch (.pkg.tar.zst and the AUR PKGBUILD), any glibc
+# distribution (AppImage) and Flatpak, then install and run each one on the
+# real distribution.
+#
 # Every run keeps the packages as workflow artifacts. When a GitHub release is
-# published, the release job attaches the Linux tarball of each architecture to
-# it, skipping any asset the release already has (so an asset uploaded by hand
-# is never replaced, and a release published with notes only is completed).
-# The APK is built by hand and is not touched.
+# published, the release job attaches the Linux packages of each architecture
+# to it, skipping any asset the release already has (so an asset uploaded by
+# hand is never replaced, and a release published with notes only is
+# completed). The APK is built by hand and is not touched.
 on:
   push:
     branches: [main]
@@ -247,9 +253,158 @@ jobs:
           path: ${{ steps.build.outputs.snap }}
           if-no-files-found: error
 
+  # Builds the installed tree from each architecture's tarball and packages
+  # it for Fedora/RHEL/openSUSE (.rpm), Arch (.pkg.tar.zst) and any glibc
+  # distribution (AppImage), then installs every one of them on the real
+  # distribution and runs it.
+  distros:
+    name: Other distros ${{ matrix.arch }}
+    needs: [linux]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64, deb_arch: amd64, runner: ubuntu-24.04 }
+          - { arch: arm64, deb_arch: arm64, runner: ubuntu-24.04-arm }
+    env:
+      NFPM_VERSION: '2.48.0'
+      APPIMAGETOOL_VERSION: '1.9.1'
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: linux-${{ matrix.arch }}
+          path: tarball
+
+      - name: Install nfpm and appimagetool
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          case "$(uname -m)" in
+            x86_64) nfpm_arch=x86_64; ai_arch=x86_64 ;;
+            aarch64) nfpm_arch=arm64; ai_arch=aarch64 ;;
+          esac
+          mkdir -p "$RUNNER_TEMP/bin"
+          cd "$RUNNER_TEMP/bin"
+          tarball="nfpm_${NFPM_VERSION}_Linux_${nfpm_arch}.tar.gz"
+          gh release download "v$NFPM_VERSION" -R goreleaser/nfpm -p "$tarball" -p checksums.txt
+          grep " $tarball\$" checksums.txt | sha256sum -c -
+          tar -xzf "$tarball" nfpm
+          gh release download "$APPIMAGETOOL_VERSION" -R AppImage/appimagetool \
+            -p "appimagetool-$ai_arch.AppImage" -O appimagetool
+          chmod +x appimagetool
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      # TREE_TARBALL: the AppImage's tree, for the Flatpak job; tar keeps
+      # modes and symlinks, which a plain artifact upload would drop.
+      - name: Build .rpm, Arch package and AppImage
+        run: |
+          VERSION="$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)"
+          packaging/linux-distros/make-tree.sh \
+            "tarball/SpaceSweep-${VERSION}-linux-${{ matrix.arch }}.tar.gz" "$RUNNER_TEMP/root"
+          VERSION="$VERSION" TREE_TARBALL="$RUNNER_TEMP/tree.tar" \
+            packaging/linux-distros/pack.sh "$RUNNER_TEMP/root" ${{ matrix.deb_arch }} dist
+
+      - name: Install and run on Fedora, openSUSE and Arch
+        run: packaging/linux-distros/verify.sh dist ${{ matrix.deb_arch }}
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: distros-${{ matrix.arch }}
+          path: |
+            dist/*.rpm
+            dist/*.pkg.tar.zst
+            dist/*.AppImage
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tree-${{ matrix.arch }}
+          path: ${{ runner.temp }}/tree.tar
+          if-no-files-found: error
+          retention-days: 3
+
+  # AUR recipe: PKGBUILD + .SRCINFO for spacesweep-bin (from the release
+  # tarballs), rendered with this build's checksums and proven with makepkg
+  # on archlinux:latest.
+  aur:
+    name: AUR PKGBUILD
+    needs: [linux]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: 'linux-*'
+          path: tarballs
+          merge-multiple: true
+
+      - name: Render and check the PKGBUILD
+        run: |
+          VERSION="$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)"
+          VERSION="$VERSION" packaging/arch/aur.sh \
+            "tarballs/SpaceSweep-${VERSION}-linux-x64.tar.gz" \
+            "tarballs/SpaceSweep-${VERSION}-linux-arm64.tar.gz" dist
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: aur
+          path: dist/*-aur.tar.gz
+          if-no-files-found: error
+
+  # Builds the Flatpak bundle from the distros job's tree, installs it in the
+  # builder container and runs it there.
+  flatpak:
+    name: Flatpak ${{ matrix.arch }}
+    needs: [distros]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      options: --privileged
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64, fp_arch: x86_64, runner: ubuntu-24.04 }
+          - { arch: arm64, fp_arch: aarch64, runner: ubuntu-24.04-arm }
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: tree-${{ matrix.arch }}
+          path: ${{ runner.temp }}
+
+      - name: Unpack the installed tree
+        id: v
+        run: |
+          mkdir -p packaging/flatpak/tree
+          tar -xf "$RUNNER_TEMP/tree.tar" -C packaging/flatpak/tree
+          echo "version=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)" >> "$GITHUB_OUTPUT"
+
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: packaging/flatpak/com.dhivalabs.space_sweep.yml
+          bundle: spacesweep-${{ steps.v.outputs.version }}-${{ matrix.fp_arch }}.flatpak
+          arch: ${{ matrix.fp_arch }}
+          artifact-name: flatpak-${{ matrix.arch }}
+          cache: false
+
+      - name: Install the bundle and run it
+        run: |
+          packaging/flatpak/test-bundle.sh \
+            spacesweep-${{ steps.v.outputs.version }}-${{ matrix.fp_arch }}.flatpak \
+            com.dhivalabs.space_sweep '^SpaceSweep$'
+
   release:
     name: Release assets
-    needs: [linux]
+    needs: [linux, distros, aur, flatpak]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -266,11 +421,35 @@ jobs:
           path: assets
           merge-multiple: true
 
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: 'distros-*'
+          path: assets
+          merge-multiple: true
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: aur
+          path: assets
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: 'flatpak-*'
+          path: assets
+          merge-multiple: true
+
       - name: Select the release assets
         id: select
         run: |
           VERSION="$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)"
           FILES="assets/SpaceSweep-${VERSION}-linux-x64.tar.gz assets/SpaceSweep-${VERSION}-linux-arm64.tar.gz"
+          for a in x86_64 aarch64; do
+            FILES="$FILES assets/spacesweep-${VERSION}-1.${a}.rpm"
+            FILES="$FILES assets/spacesweep-${VERSION}-1-${a}.pkg.tar.zst"
+            FILES="$FILES assets/SpaceSweep-${VERSION}-${a}.AppImage"
+            FILES="$FILES assets/spacesweep-${VERSION}-${a}.flatpak"
+          done
+          FILES="$FILES assets/spacesweep-bin-${VERSION}-aur.tar.gz"
           ls -l assets
           ls -l $FILES
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"

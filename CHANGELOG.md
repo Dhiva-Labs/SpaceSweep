@@ -3,6 +3,16 @@
 All notable changes to SpaceSweep are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- Linux packages for other distributions, for x86-64 and ARM64, built from
+  the same build as the tarball and installed and started on each target in
+  CI: an `.rpm` for Fedora and openSUSE, an Arch Linux package, an AppImage
+  and a Flatpak bundle, plus an AUR recipe (`spacesweep-bin`). The release job
+  attaches them to each published release.
+
 ## [1.1.0] — 2026-10-16
 
 First release of the Linux desktop edition. The version in `pubspec.yaml` and

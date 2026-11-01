@@ -52,3 +52,6 @@ dist/
 /parts/
 /prime/
 /stage/
+
+# Flatpak build input, unpacked by CI (packaging/flatpak/README.md)
+/packaging/flatpak/tree/
