@@ -29,6 +29,10 @@ out="$(cd "$3" && pwd)"
 
 # shellcheck source=/dev/null
 . "$here/distro.conf"
+# The optional lists distro.conf may leave out are empty.
+for v in EXCLUDE PACKAGE_EXCLUDE RPM_REQUIRES RPM_RECOMMENDS ARCH_DEPENDS ARCH_OPTDEPENDS AUR_SOURCES; do
+  declare -p "$v" > /dev/null 2>&1 || declare -a "$v=()"
+done
 : "${VERSION:?set VERSION to the package version, e.g. 1.2.3}"
 : "${NAME:?distro.conf must set NAME}"
 NFPM="${NFPM:-nfpm}"
@@ -195,12 +199,23 @@ write_config() {
   echo "  rpm:"
   echo "    depends:"
   for d in "${rpm_requires[@]}"; do echo "      - $(q "$d")"; done
+  # Tools the app uses when they are there (the .deb's Recommends):
+  # RPM_RECOMMENDS (file paths or package names) and ARCH_OPTDEPENDS
+  # ('package: what for').
+  if [ "${#RPM_RECOMMENDS[@]}" -gt 0 ]; then
+    echo "    recommends:"
+    for d in "${RPM_RECOMMENDS[@]}"; do echo "      - $(q "$d")"; done
+  fi
   echo "  archlinux:"
   if [ "${#arch_depends[@]}" -gt 0 ]; then
     echo "    depends:"
     for d in "${arch_depends[@]}"; do echo "      - $(q "$d")"; done
   else
     echo "    depends: []"
+  fi
+  if [ "${#ARCH_OPTDEPENDS[@]}" -gt 0 ]; then
+    echo "    suggests:"
+    for d in "${ARCH_OPTDEPENDS[@]}"; do echo "      - $(q "$d")"; done
   fi
   echo "rpm:"
   echo "  summary: $(q "$SUMMARY")"

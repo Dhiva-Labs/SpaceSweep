@@ -21,6 +21,10 @@ src_amd64="$(readlink -f "$1")"; src_arm64="$(readlink -f "$2")"
 mkdir -p "$3"; out="$(cd "$3" && pwd)"
 # shellcheck source=/dev/null
 . "$here/../linux-distros/distro.conf"
+# The optional lists distro.conf may leave out are empty.
+for v in EXCLUDE PACKAGE_EXCLUDE RPM_REQUIRES RPM_RECOMMENDS ARCH_DEPENDS ARCH_OPTDEPENDS AUR_SOURCES; do
+  declare -p "$v" > /dev/null 2>&1 || declare -a "$v=()"
+done
 : "${VERSION:?set VERSION}"
 : "${GITHUB_REPO:?distro.conf must set GITHUB_REPO, e.g. Dhiva-Labs/BranchPilot}"
 tag="${TAG_PREFIX-v}$VERSION"
@@ -28,9 +32,11 @@ sha() { sha256sum "$1" | cut -d' ' -f1; }
 
 work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT
 deps=""; for d in "${ARCH_DEPENDS[@]}"; do deps+="'$d' "; done
+optdeps=""; for d in "${ARCH_OPTDEPENDS[@]}"; do optdeps+="'$d' "; done
 sed -e "s|@NAME@|$NAME|g" -e "s|@VERSION@|$VERSION|g" \
     -e "s|@SUMMARY@|${SUMMARY//\'/}|g" -e "s|@HOMEPAGE@|$HOMEPAGE|g" \
     -e "s|@LICENSE@|$LICENSE|g" -e "s|@ARCH_DEPENDS@|${deps% }|g" \
+    -e "s|@ARCH_OPTDEPENDS@|${optdeps% }|g" \
     -e "s|@RELEASE_URL@|https://github.com/$GITHUB_REPO/releases/download/$tag|g" \
     -e "s|@SRC_AMD64@|$(basename "$src_amd64")|g" -e "s|@SRC_ARM64@|$(basename "$src_arm64")|g" \
     -e "s|@SHA_AMD64@|$(sha "$src_amd64")|g" -e "s|@SHA_ARM64@|$(sha "$src_arm64")|g" \
@@ -58,7 +64,11 @@ printf '%s\n' "$pkgbuild" > "$work/PKGBUILD"
 cp "$src_amd64" "$work/"
 if grep -n '@[A-Z0-9_]*@' "$work/PKGBUILD"; then echo "unfilled placeholder" >&2; exit 1; fi
 
-docker run --rm -v "$work:/build" archlinux:latest bash -euo pipefail -c '
+# makepkg refuses to run as root, so the build runs as a user made in the
+# container; /build goes back to the runner's user at the end, or the tar
+# below (and the cleanup) cannot read what makepkg wrote.
+docker run --rm -v "$work:/build" -e HOST_IDS="$(id -u):$(id -g)" archlinux:latest bash -euo pipefail -c '
+  trap "chown -R \"\$HOST_IDS\" /build" EXIT
   pacman -Syu --noconfirm --needed -q base-devel namcap
   useradd -m builder
   chown -R builder /build
@@ -67,13 +77,21 @@ docker run --rm -v "$work:/build" archlinux:latest bash -euo pipefail -c '
   su builder -c "makepkg --noconfirm --nodeps -f"
   namcap PKGBUILD
   pacman -U --noconfirm ./*-x86_64.pkg.tar.zst
-  # Every ELF file the package installed finds its libraries on Arch.
+  # Every ELF file the package installed finds its libraries on Arch. The
+  # library directories of the package go on LD_LIBRARY_PATH, as the RUNPATH
+  # of the executable supplies them at run time (Flutter plugins need
+  # libflutter_linux_gtk.so from there, but keep the RUNPATH of the build
+  # machine).
+  files="$(pacman -Qlq "$(sed -n "s/^pkgname = //p" .SRCINFO)")"
+  libdirs="$(for f in $files; do
+    case "$f" in *.so|*.so.*) if [ -f "$f" ]; then dirname "$f"; fi ;; esac
+  done | sort -u | paste -sd:)"
   missing=0 n=0
-  for f in $(pacman -Qlq "$(sed -n "s/^pkgname = //p" .SRCINFO)"); do
+  for f in $files; do
     [ -f "$f" ] && [ ! -L "$f" ] || continue
     [ "$(head -c 4 "$f" | od -An -tx1 | tr -d " \n")" = 7f454c46 ] || continue
     n=$((n + 1))
-    if ldd "$f" | grep "not found"; then echo "^ $f"; missing=1; fi
+    if LD_LIBRARY_PATH="$libdirs" ldd "$f" 2>&1 | grep "not found"; then echo "^ $f"; missing=1; fi
   done
   echo "$n ELF files checked"
   [ "$n" -gt 0 ] && [ "$missing" = 0 ]
