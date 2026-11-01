@@ -1,0 +1,54 @@
+# Flatpak manifest for SpaceSweep.
+#
+# Like the .rpm, Arch package and AppImage, this repackages the installed
+# tree CI builds from the release tarball (packaging/linux-distros/
+# make-tree.sh, unpacked into packaging/flatpak/tree/ by the workflow), so
+# the Flatpak ships the same binary as every other format instead of a
+# second build inside the sandbox. A Flathub submission needs `tree` swapped
+# for an archive source (release URL + sha256); see README.md in this
+# directory.
+id: com.dhivalabs.space_sweep
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+command: spacesweep
+finish-args:
+  # GTK needs a display socket; fallback-x11 covers X11-only desktops.
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  # GPU acceleration for Flutter's renderer.
+  - --device=dri
+  # The whole point of the app: it scans the user folders for duplicate,
+  # junk and large files and deletes the ones you pick, clears folders in
+  # ~/.cache and empties ~/.local/share/Trash, all by path.
+  - --filesystem=home
+  # Flatpak points these into the app's own ~/.var/app folder, where the app
+  # would then find only its own cache and trash and no user-dirs.dirs.
+  # Unset, the app (and GLib) use the real ~/.cache, ~/.local/share and
+  # ~/.config, as the .deb-style packages do.
+  - --unset-env=XDG_CACHE_HOME
+  - --unset-env=XDG_DATA_HOME
+  - --unset-env=XDG_CONFIG_HOME
+modules:
+  - name: spacesweep
+    buildsystem: simple
+    build-options:
+      # Stripping the Flutter AOT snapshot (libapp.so) leaves an app that
+      # cannot start.
+      no-debuginfo: true
+      strip: false
+    sources:
+      - type: dir
+        path: tree
+        dest: tree
+      - type: file
+        path: com.dhivalabs.space_sweep.metainfo.xml
+    build-commands:
+      # Flutter finds lib/ and data/ next to its executable.
+      - install -d /app/lib && cp -a tree/usr/lib/spacesweep /app/lib/spacesweep
+      - install -d /app/bin && ln -s ../lib/spacesweep/space_sweep /app/bin/spacesweep
+      - install -Dm644 tree/usr/share/applications/spacesweep.desktop /app/share/applications/com.dhivalabs.space_sweep.desktop
+      - desktop-file-edit --set-icon=com.dhivalabs.space_sweep /app/share/applications/com.dhivalabs.space_sweep.desktop
+      - install -Dm644 tree/usr/share/icons/hicolor/512x512/apps/spacesweep.png /app/share/icons/hicolor/512x512/apps/com.dhivalabs.space_sweep.png
+      - install -Dm644 com.dhivalabs.space_sweep.metainfo.xml /app/share/metainfo/com.dhivalabs.space_sweep.metainfo.xml

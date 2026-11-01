@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.dhivalabs.space_sweep</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <name>SpaceSweep</name>
+  <summary>Find duplicate files, clear app caches and empty the trash</summary>
+  <description>
+    <p>SpaceSweep frees up disk space without guesswork: it finds duplicate, junk and large files in your Desktop, Documents, Downloads, Music, Pictures and Videos folders, lists every folder in ~/.cache by size to clear, and empties the desktop trash.</p>
+    <p>Everything runs on your computer: no ads, no tracking, no network access.</p>
+  </description>
+  <launchable type="desktop-id">com.dhivalabs.space_sweep.desktop</launchable>
+  <url type="homepage">https://github.com/Dhiva-Labs/SpaceSweep</url>
+  <url type="bugtracker">https://github.com/Dhiva-Labs/SpaceSweep/issues</url>
+  <developer id="com.dhivalabs">
+    <name>Dhiva Labs</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="1.1.0" date="2026-10-16"/>
+  </releases>
+</component>

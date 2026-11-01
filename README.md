@@ -3,6 +3,7 @@
 [![ARM64 builds](https://github.com/Dhiva-Labs/SpaceSweep/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Dhiva-Labs/SpaceSweep/actions/workflows/ci.yml)
 ![Linux x64 | arm64](https://img.shields.io/badge/Linux-x64%20%7C%20arm64-informational?logo=linux&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-informational?logo=android&logoColor=white)
+![Linux: tarball | rpm | Arch | AppImage | Flatpak | Snap](https://img.shields.io/badge/Linux-tarball%20%7C%20rpm%20%7C%20Arch%20%7C%20AppImage%20%7C%20Flatpak%20%7C%20Snap-informational?logo=linux&logoColor=white)
 
 **Free up space on your Android phone or Linux desktop.** Find duplicate files, clear app caches,
 sweep away junk and spot the files eating your storage — all on-device, no ads,
@@ -89,6 +90,31 @@ Or download the tarball for your machine from the
 `SpaceSweep-<version>-linux-arm64.tar.gz` (ARM64 / aarch64), extract it and run
 `./space_sweep`. It needs the GTK 3 runtime (`libgtk-3-0`). Outside the snap
 the app works on your real home folder directly.
+
+From the next release on, the Releases page also carries packages for other
+distributions, for x86-64 (`x86_64`) and ARM64 (`aarch64`), all made from the
+same build as the tarball. CI installs each one on its distribution and
+starts the app there.
+
+| Distribution | Install |
+|---|---|
+| Fedora, RHEL/Rocky/Alma | `sudo dnf install ./spacesweep-<version>-1.x86_64.rpm` |
+| openSUSE Tumbleweed | `sudo zypper install --allow-unsigned-rpm ./spacesweep-<version>-1.x86_64.rpm` |
+| Arch, Manjaro, EndeavourOS | `sudo pacman -U ./spacesweep-<version>-1-x86_64.pkg.tar.zst` |
+| Any distribution (AppImage) | `chmod +x SpaceSweep-<version>-x86_64.AppImage && ./SpaceSweep-<version>-x86_64.AppImage` |
+| Any distribution (Flatpak) | `flatpak install --user ./spacesweep-<version>-x86_64.flatpak` |
+
+- The `.rpm` is not signed, hence `--allow-unsigned-rpm` on openSUSE. It asks
+  for the glibc its files use, so dnf and zypper refuse a system that is too
+  old.
+- The AppImage needs GTK 3 and glibc 2.34 or newer from the system (Fedora
+  35+, RHEL 9, openSUSE Tumbleweed, current Arch).
+- The Flatpak needs the GNOME runtime from Flathub
+  (`flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo`)
+  and has access to your home folder, which it scans and cleans.
+- An AUR recipe (`spacesweep-bin`, PKGBUILD + .SRCINFO built from the release
+  tarball) is attached as `spacesweep-bin-<version>-aur.tar.gz`; it is not on
+  the AUR yet.
 
 If the snap's file plugs aren't connected yet (they need a store grant to
 connect automatically), connect them once:
