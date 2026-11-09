@@ -9,6 +9,8 @@
 sweep away junk and spot the files eating your storage — all on-device, no ads,
 no tracking, no network access.
 
+**Documentation:** step-by-step guides at [learn.dhivalabs.com](https://learn.dhivalabs.com/apps/spacesweep/): [install](https://learn.dhivalabs.com/apps/spacesweep/install) · [beginner guide](https://learn.dhivalabs.com/apps/spacesweep/getting-started) · [troubleshooting](https://learn.dhivalabs.com/apps/spacesweep/faq). New to the topic? Try the [Android and ADB](https://learn.dhivalabs.com/tracks/android/) learning track.
+
 <p>
   <img src="docs/screenshots/home.png" width="180" alt="Home, dark">
   <img src="docs/screenshots/home-light.png" width="180" alt="Home, light">
