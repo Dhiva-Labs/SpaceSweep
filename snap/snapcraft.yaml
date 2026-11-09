@@ -38,7 +38,9 @@ grade: stable
 confinement: strict
 icon: snap/gui/spacesweep.png
 license: Proprietary
-website: https://github.com/Dhiva-Labs/SpaceSweep
+website:
+  - https://github.com/Dhiva-Labs/SpaceSweep
+  - https://learn.dhivalabs.com/apps/spacesweep/
 source-code: https://github.com/Dhiva-Labs/SpaceSweep
 issues: https://github.com/Dhiva-Labs/SpaceSweep/issues
 contact: dhivakar1010@gmail.com
